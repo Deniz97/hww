@@ -147,7 +147,7 @@ def get_similiar_images(img_name,features,names,args):
         for index,feat in enumerate(features):
                 
                 distance_array[index] = eucledian(current_features,feat)
-                image_names_array[index] = names[index]
+                image_names_array[index] = names[index].replace("./dataset/","")
 
 
         return list(zip(distance_array,image_names_array))
