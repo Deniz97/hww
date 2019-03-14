@@ -50,7 +50,7 @@ def get_image_names():
 
 def eucledian(v1,v2):
     return scipy.spatial.distance.cosine(v1,v2)
-    return np.linalg.norm(v1-v2)
+    #return np.linalg.norm(v1-v2)
 
 def gridden(img,grid):
     if grid!=1:
@@ -62,7 +62,6 @@ def gridden(img,grid):
     return img
     
 def grayscale_histogram(img,k,grid):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = gridden(img,grid)
     hist = np.histogram(img, bins=k,range=(0,255))[0]
     return hist
@@ -76,13 +75,50 @@ def color_histogram(img,k,grid):
     return retval
 
 def edge_histogram(img,k):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    fx = np.asarray( [ [1,0,-1], [2,0,-2], [1,0,-1] ] )
+    fy = np.asarray( [ [1,2,1],[0,0,0],[-1,-2,-1] ] )
+    sobelx = scipy.ndimage.convolve(img,fx)
+    sobely = scipy.ndimage.convolve(img,fy)
+    magn = np.hypot(sobelx,sobely)
+
+    direc = np.arctan2(sobely,sobelx)
+    
+    edges = np.histogram(direc,bins=k)[1]
+    print(edges.shape)
+    bin_indices = np.digitize(direc,edges)
+    
+    hist = np.zeros(k)
+    magnf = magn.flatten()
+    for index,x in enumerate( np.nditer(bin_indices) ):
+        hist[ x-2 ] += magnf[index]
+
+    return hist
+    
+    
+
+def edge_histogram2(img,k):
+    """
     edge_map = cv2.Canny(img,100,200)
     grad_map = np.gradient(img)[0]
     grad = grad_map[edge_map>0]
     retval = np.histogram(grad,bins=k)[0]
     
     return retval
+    """
+    fx = np.asarray( [ [1,0,-1], [2,0,-2], [1,0,-1] ] )
+    fy = np.asarray( [ [1,2,1],[0,0,0],[-1,-2,-1] ] )
+    sobelx = scipy.ndimage.convolve(img,fx)
+    sobely = scipy.ndimage.convolve(img,fy)
+    magn = np.square(sobelx) + np.square(sobely)
+    magn = np.sqrt(magn)
+
+    direc = np.arctan2(sobely,sobelx)
+
+    hist1 = np.histogram(magn,bins=k)[0]
+    hist2 = np.histogram(direc,bins=k)[0]
+    return np.concatenate((hist1,hist2))
+
+
 
 def blockshaped(arr, nrows, ncols):
     """
@@ -92,15 +128,34 @@ def blockshaped(arr, nrows, ncols):
     If arr is a 2D array, the returned array should look like n subblocks with
     each subblock preserving the "physical" layout of arr.
     """
+
+    assert len(arr.shape)==2, "Grid feature not yet implemented for color histogram ("+str(arr.shape)+")"
+    if arr.shape[0]%2!=0:
+        arr = arr[:-1,:]
+    if arr.shape[1]%2!=0:
+        arr = arr[:,:-1]
     h, w = arr.shape
     return (arr.reshape(h//nrows, nrows, -1, ncols)
                .swapaxes(1,2)
                .reshape(-1, nrows, ncols))
 
 def extract_features(img,typef,k,grid,divide,norm=True):
-    #divide the picture in to divide*divide regions
-    if divide>1:
+    
+    
+    
+    #average the picture over grid*grid regions
+    if grid>1:
+        org_h = img.shape[0]
+        org_w = img.shape[1]
         imgs = blockshaped(img,grid,grid)
+        img = np.asarray( [ np.average(x) for x in imgs] )[org_h//grid* org_w//grid:].reshape( org_h//grid, org_w//grid  )
+        return extract_features(x,typef,k,1,divide)
+        
+    #divide the picture in to divide*divide regions
+    if divide > 1:
+        org_h = img.shape[0]
+        org_w = img.shape[1]
+        imgs = blockshaped(img,org_h//divide,org_w//divide)
         hists = [extract_features(x,typef,k,grid,1,norm=False) for x in imgs]
         hists = np.concatenate(hists)
         hists = hists/np.sum(hists)
@@ -112,8 +167,13 @@ def extract_features(img,typef,k,grid,divide,norm=True):
         feat = color_histogram(img,k,grid)
     elif typef==3:
         feat = edge_histogram(img,k)
+    
     if norm:
-        feat = feat/np.sum(feat)
+        #print("feat: ",feat)
+        #print("s: ",np.sum(feat))
+        #print("f/s: ",feat/np.sum(feat))
+        retval = feat/np.sum(feat)
+        return retval
     
     return feat
 
@@ -121,13 +181,21 @@ def update_feature_vectors(fname,feat_type,k,grid,divide):
         pic_names_array = get_image_names()
         pic_count = len(pic_names_array)
         feat_filename = fname
-        features = np.zeros((pic_count,k*grid**2)) if feat_type!= 2 else np.zeros((pic_count,k**3*grid**2))
+        sec_dim = k * divide**2
+        if feat_type==3:
+                sec_dim = sec_dim
+        elif feat_type==2:
+                sec_dim = sec_dim*k*k
+        features = np.zeros((pic_count,sec_dim))
         print("extracting features")
         for index,pic in enumerate(pic_names_array):
-                if(index%100==0):
+                if(index%1==0):
                        print("Feature extracted %d images" % index)
-                curr_image = cv2.imread(pic)
-                features[index] = extract_features(curr_image,feat_type,k,grid,divide)
+                curr_image = cv2.imread(pic) if feat_type == 2 else cv2.imread(pic,0)
+                #print("a: ",features[index].shape)
+                temp = extract_features(curr_image,feat_type,k,grid,divide)
+                #print("b: ",temp.shape)
+                features[index] = temp
         to_save =  { "features" : features, "names":pic_names_array } 
         print("done extracting")
         with open(feat_filename,"wb") as feat_file:
@@ -139,9 +207,9 @@ def update_feature_vectors(fname,feat_type,k,grid,divide):
 
 def get_similiar_images(img_name,features,names,args):
 
-
-        curr_image_gray = cv2.imread("./dataset/"+img_name)
-        current_features = extract_features(curr_image_gray,args.t,args.bin,args.grid,args.divide)
+        
+        curr_image = cv2.imread("./dataset/"+img_name) if args.t == 2 else cv2.imread("./dataset/"+img_name,0)
+        current_features = extract_features(curr_image,args.t,args.bin,args.grid,args.divide)
         distance_array = np.zeros(shape=(len(names),))
         image_names_array = [0]*(len(names))
         for index,feat in enumerate(features):
@@ -223,9 +291,9 @@ if __name__ == '__main__':
                         help='Reuse old features from file')
     parser.add_argument('--log',  dest='log', action='store_true',
                         help='Create log files')
-    parser.add_argument('--grid',  dest='grid', type=int,default=1,help="Sampling size of pixels")
+    parser.add_argument('--grid',  dest='grid', type=int,default=1,help="Sampling size of pixels (not in actual hw)")
     parser.add_argument('--divide',  dest='divide', type=int,default=1,
-                       help="Parition to picture and histogram the sub pictures")
+                       help="Parition to picture and histogram the sub pictures (in actual hw)")
     parser.add_argument('--bin',  dest='bin', type=int,default=10,
                        help="Number of bins for histograms")
 
