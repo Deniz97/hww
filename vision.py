@@ -52,25 +52,17 @@ def eucledian(v1,v2):
     return scipy.spatial.distance.cosine(v1,v2)
     #return np.linalg.norm(v1-v2)
 
-def gridden(img,grid):
-    if grid!=1:
-        img = view_as_windows(img,grid,step=grid)
-        img = img.reshape(-1,grid*grid)
-        img = np.average(img,axis=1)
-    else:
-        img = img.flatten()
-    return img
     
-def grayscale_histogram(img,k,grid):
-    img = gridden(img,grid)
+def grayscale_histogram(img,k):
+    img = img.flatten()
     hist = np.histogram(img, bins=k,range=(0,255))[0]
     return hist
 
-def color_histogram(img,k,grid):
+def color_histogram(img,k):
     c=[0]*3
-    c[0] = gridden(img[:,:,0],grid)
-    c[1] = gridden(img[:,:,1],grid)
-    c[2] = gridden(img[:,:,2],grid)
+    c[0] = img[:,:,0].flatten()
+    c[1] = img[:,:,1].flatten()
+    c[2] = img[:,:,2].flatten()
     retval = np.histogramdd(c,bins=(k,k,k))[0].flatten()
     return retval
 
@@ -79,21 +71,30 @@ def edge_histogram(img,k):
     fy = np.asarray( [ [1,2,1],[0,0,0],[-1,-2,-1] ] )
     sobelx = scipy.ndimage.convolve(img,fx)
     sobely = scipy.ndimage.convolve(img,fy)
-    magn = np.hypot(sobelx,sobely)
+    magn = np.hypot(sobelx,sobely)/255
 
     direc = np.arctan2(sobely,sobelx)
     
-    edges = np.histogram(direc,bins=k)[1]
-    print(edges.shape)
-    bin_indices = np.digitize(direc,edges)
-    
+    edges = np.histogram(direc.flatten(),bins=k)[1]
+
+    bin_indices = np.digitize(direc,edges[:-1])
+
+          
+    hist = np.zeros(k)
+    for i in range(k):
+
+        hist[i] = np.sum(magn[bin_indices==(i+1)])
+
+
+    return hist
+    """
     hist = np.zeros(k)
     magnf = magn.flatten()
     for index,x in enumerate( np.nditer(bin_indices) ):
         hist[ x-2 ] += magnf[index]
 
     return hist
-    
+    """
     
 
 def edge_histogram2(img,k):
@@ -162,9 +163,9 @@ def extract_features(img,typef,k,grid,divide,norm=True):
         return hists
     
     if typef==1:
-        feat = grayscale_histogram(img,k,grid)
+        feat = grayscale_histogram(img,k)
     elif typef==2:
-        feat = color_histogram(img,k,grid)
+        feat = color_histogram(img,k)
     elif typef==3:
         feat = edge_histogram(img,k)
     
@@ -189,7 +190,7 @@ def update_feature_vectors(fname,feat_type,k,grid,divide):
         features = np.zeros((pic_count,sec_dim))
         print("extracting features")
         for index,pic in enumerate(pic_names_array):
-                if(index%1==0):
+                if(index%100==0):
                        print("Feature extracted %d images" % index)
                 curr_image = cv2.imread(pic) if feat_type == 2 else cv2.imread(pic,0)
                 #print("a: ",features[index].shape)
