@@ -41,6 +41,10 @@ def log_results(args):
                 filem.write("Best Score : %f \n" % map_score )
                 #TODO
                 pass
+        with open("logs.txt","a") as filem:
+                filem.write("params: %s score: %f\n" % (name, map_score) )
+                #TODO
+                pass
 
 
 
@@ -130,11 +134,18 @@ def blockshaped(arr, nrows, ncols):
     each subblock preserving the "physical" layout of arr.
     """
 
-    assert len(arr.shape)==2, "Grid feature not yet implemented for color histogram ("+str(arr.shape)+")"
-    if arr.shape[0]%2!=0:
-        arr = arr[:-1,:]
-    if arr.shape[1]%2!=0:
-        arr = arr[:,:-1]
+    if len(arr.shape)== 3:
+        d1 = blockshaped(arr[:,:,0],nrows,ncols)
+        d2 = blockshaped(arr[:,:,1],nrows,ncols)
+        d3 = blockshaped(arr[:,:,2],nrows,ncols)
+        c = [ np.concatenate((np.expand_dims(x,axis=2),np.expand_dims(y,axis=2),np.expand_dims(z,axis=2)),axis=2) for x,y,z in zip(d1,d2,d3) ]
+        return c
+        
+        
+    if arr.shape[0]%nrows!=0:
+        arr = arr[:-(arr.shape[0]%nrows),:]
+    if arr.shape[1]%ncols!=0:
+        arr = arr[:,:-(arr.shape[1]%ncols)]
     h, w = arr.shape
     return (arr.reshape(h//nrows, nrows, -1, ncols)
                .swapaxes(1,2)
@@ -149,7 +160,7 @@ def extract_features(img,typef,k,grid,divide,norm=True):
         org_h = img.shape[0]
         org_w = img.shape[1]
         imgs = blockshaped(img,grid,grid)
-        img = np.asarray( [ np.average(x) for x in imgs] )[org_h//grid* org_w//grid:].reshape( org_h//grid, org_w//grid  )
+        img = np.asarray( [ np.average(x) if len(img.shape) == 2 else np.average(x,axis=2) for x in imgs] )[org_h//grid* org_w//grid:].reshape( org_h//grid, org_w//grid  )
         return extract_features(x,typef,k,1,divide)
         
     #divide the picture in to divide*divide regions

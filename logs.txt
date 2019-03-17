@@ -1,0 +1,33 @@
+params: color_grid1_bin8_divide1_result.txt score: 0.379359
+params: color_grid1_bin8_divide2_result.txt score: 0.371579
+params: color_grid1_bin8_divide4_result.txt score: 0.350824
+params: color_grid1_bin32_divide1_result.txt score: 0.352506
+params: color_grid1_bin32_divide2_result.txt score: 0.301972
+params: gray_grid1_bin8_divide1_result.txt score: 0.157698
+params: edge_grid1_bin8_divide2_result.txt score: 0.337137
+params: edge_grid1_bin8_divide4_result.txt score: 0.384363
+params: edge_grid1_bin32_divide1_result.txt score: 0.027914
+params: edge_grid1_bin32_divide2_result.txt score: 0.311907
+params: edge_grid1_bin32_divide4_result.txt score: 0.358913
+params: edge_grid1_bin128_divide1_result.txt score: 0.213400
+params: edge_grid1_bin128_divide2_result.txt score: 0.314390
+params: edge_grid1_bin128_divide4_result.txt score: 0.350714
+params: gray_grid1_bin8_divide1_result.txt score: 0.157698
+params: gray_grid1_bin8_divide2_result.txt score: 0.247615
+params: gray_grid1_bin8_divide4_result.txt score: 0.275610
+params: gray_grid1_bin32_divide1_result.txt score: 0.177606
+params: gray_grid1_bin32_divide2_result.txt score: 0.228073
+params: gray_grid1_bin32_divide4_result.txt score: 0.259760
+params: gray_grid1_bin128_divide1_result.txt score: 0.179280
+params: gray_grid1_bin128_divide2_result.txt score: 0.217960
+params: gray_grid1_bin128_divide4_result.txt score: 0.233195
+---------------------
+
+params: color_grid1_bin8_divide4_result.txt score: 0.350824
+params: edge_grid1_bin32_divide1_result.txt score: 0.027914
+params: edge_grid1_bin8_divide1_result.txt score: 0.005615
+---------------
+
+params: color_grid1_bin16_divide1_result.txt score: 0.393967
+params: color_grid1_bin16_divide4_result.txt score: 0.321361
+params: color_grid1_bin16_divide2_result.txt score: 0.350763

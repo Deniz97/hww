@@ -1,0 +1,6 @@
+
+python vision.py -t 2 --divide 1 --bin 16 --log
+python vision.py -t 2 --divide 4 --bin 32 --log
+python vision.py -t 2 --divide 4 --bin 16 --log
+python vision.py -t 2 --divide 2 --bin 16 --log
+
